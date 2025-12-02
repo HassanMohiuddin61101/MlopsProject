@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Airflow
+airflow/
+*.log
+airflow.cfg
+
+# Data (tracked by DVC - allow .dvc files)
+data/
+*.csv
+*.parquet
+*.pkl
+*.pickle
+!data/*.dvc
+
+# Models (tracked by DVC - allow .dvc files)
+models/
+*.pkl
+*.h5
+*.onnx
+!model/*.dvc
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# DVC
+# Allow .dvc directory and .dvc files to be tracked
+!.dvc/
+!.dvc/**
+*.dvc.cache
+.dvc/tmp/
+.dvc/cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Profiling
+data/profiles/
+*.html
+
+# Docker
+docker-compose.override.yml
+
+/model

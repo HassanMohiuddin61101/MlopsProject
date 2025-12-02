@@ -1,0 +1,19 @@
+# Minimal requirements for DAG to run (Python 3.8 compatible)
+# Only packages needed for binance_etl_dag.py
+
+# Core data processing
+pandas==1.5.3
+numpy==1.24.3
+
+# Binance API
+requests==2.31.0
+
+# MinIO
+minio==7.2.0
+
+# Data Profiling (Python 3.8 compatible)
+pandas-profiling==3.6.6
+
+# Utilities
+python-dotenv==1.0.0
+
