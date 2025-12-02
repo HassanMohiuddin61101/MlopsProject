@@ -9,6 +9,9 @@ on:
       - 'dags/**'
       - 'requirements.txt'
       - '.github/workflows/**'
+      - '**/*.md'
+      - '**/*.py'
+      - 'scripts/**'
 
 jobs:
   code-quality:
