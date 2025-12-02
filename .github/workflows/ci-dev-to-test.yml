@@ -34,6 +34,15 @@ jobs:
       - name: Setup CML
         uses: iterative/setup-cml@v1
       
+      - name: Install GitHub CLI (for fallback)
+        run: |
+          type gh >/dev/null 2>&1 || {
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt update
+            sudo apt install gh -y
+          }
+      
       - name: Configure DVC
         run: |
           dvc remote add -d minio-remote s3://dvc-data || true
@@ -55,19 +64,50 @@ jobs:
           MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
           DAGSHUB_USER_TOKEN: ${{ secrets.DAGSHUB_USER_TOKEN }}
           DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+        continue-on-error: true
         run: |
-          python scripts/compare_models_cml.py || echo "Model comparison completed"
+          python scripts/compare_models_cml.py || {
+            echo "⚠️  Model comparison script failed or no models found"
+            echo "This is expected if no models exist in MLflow yet"
+            exit 0
+          }
       
       - name: Generate CML Report
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
         run: |
-          if [ -f "cml_report.md" ]; then
-            cml comment create cml_report.md --pr
-          else
+          # Create report if it doesn't exist
+          if [ ! -f "cml_report.md" ]; then
             echo "## Model Comparison Report" > cml_report.md
+            echo "" >> cml_report.md
             echo "No model comparison data available." >> cml_report.md
             echo "This is a placeholder report." >> cml_report.md
-            cml comment create cml_report.md --pr
+            echo "" >> cml_report.md
+            echo "**Note:** Model comparison script may have failed or no models found in MLflow." >> cml_report.md
+          fi
+          
+          # Display report content
+          echo "=== CML Report Content ==="
+          cat cml_report.md
+          echo "========================="
+          
+          # Post comment to PR using CML
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          if [ -n "$PR_NUMBER" ]; then
+            echo "Posting CML report to PR #$PR_NUMBER"
+            
+            # Try CML first
+            cml comment create cml_report.md --pr "$PR_NUMBER" 2>&1 || {
+              echo "⚠️  CML comment failed, trying GitHub CLI..."
+              # Fallback: use GitHub CLI
+              gh pr comment "$PR_NUMBER" --body-file cml_report.md 2>&1 || {
+                echo "⚠️  GitHub CLI also failed. Report saved as artifact."
+                echo "You can view the report in the workflow artifacts or logs above."
+              }
+            }
+          else
+            echo "⚠️  Not a pull request event, skipping CML comment"
+            echo "Report content displayed above."
           fi
 
