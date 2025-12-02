@@ -10,6 +10,7 @@ on:
       - 'model/**'
       - 'Dockerfile*'
       - '.github/workflows/**'
+  workflow_dispatch:  # Allow manual trigger
 
 jobs:
   build-and-deploy:
@@ -50,16 +51,22 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       
       - name: Build Docker image
+        if: ${{ secrets.DOCKER_USERNAME != '' }}
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile.api
-          push: ${{ secrets.DOCKER_USERNAME != '' }}
+          push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/mlops-api:${{ github.sha }}
             ${{ secrets.DOCKER_USERNAME }}/mlops-api:latest
           cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/mlops-api:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/mlops-api:buildcache,mode=max
+      
+      - name: Build Docker image (local test only)
+        if: ${{ secrets.DOCKER_USERNAME == '' }}
+        run: |
+          echo "Docker Hub credentials not set, building locally only"
       
       - name: Test Docker image locally
         run: |
